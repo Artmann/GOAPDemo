@@ -4,33 +4,41 @@ using UnityEngine;
 
 [RequireComponent(typeof(CharacterController))]
 public class Player : MonoBehaviour {
-	public float maxSpeed = 6f;
-	public float acceleration = .1f;
+	public float speed = 5f;
+	public float rotationSpeed = 3f;
+	public float cooldown = .4f;
+	public GameObject bulletPrefab;
 
-	public float verticalSpeed;
-	private float horizontalSpeed;
-
+	private bool canShoot;
+	
 	private CharacterController characterController;
 
 	void Start () {
+		Cursor.lockState = CursorLockMode.Locked;
+		canShoot = true;
+		
 		characterController = GetComponent<CharacterController> ();
-
-		verticalSpeed = 0;
-		horizontalSpeed = 0;
 	}
 	
 	void Update () {
-		verticalSpeed = Mathf.Clamp (
-			verticalSpeed + ((Input.GetAxis("Vertical") * acceleration - (acceleration / 2f)) * Time.deltaTime),
-			maxSpeed,
-			-maxSpeed
+		var movement = transform.TransformDirection(
+			new Vector3(Input.GetAxis("Horizontal"), 0f, Input.GetAxis("Vertical"))
 		);
-		horizontalSpeed = Mathf.Clamp (
-			horizontalSpeed + ((Input.GetAxis("Horizontal") * acceleration - (acceleration / 2f)) * Time.deltaTime),
-			-maxSpeed,
-			maxSpeed
-		);
+		characterController.Move(movement  * speed * Time.deltaTime);
+		
+		var rotation = Input.GetAxis("Mouse X") * rotationSpeed * Time.deltaTime;
+		transform.Rotate(new Vector3(0, rotation, 0));
 
-		characterController.Move(new Vector3(horizontalSpeed, 0f, verticalSpeed));
+		if (Input.GetMouseButton(0) && canShoot) {
+			var position = transform.position + transform.forward * 1f;
+			var go = Instantiate(bulletPrefab, position, Quaternion.LookRotation(transform.forward));
+			StartCoroutine(ShootCooldown());
+		}
+	}
+
+	IEnumerator ShootCooldown() {
+		canShoot = false;
+		yield return new WaitForSeconds(cooldown);
+		canShoot = true;
 	}
 }
